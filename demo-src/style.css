@@ -3,6 +3,10 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
+#finder-navigator>*{
+  margin: 0 2px;
+}
+
 a {
   color: #00B7FF;
 }

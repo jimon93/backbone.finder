@@ -1,28 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf8">
 <title>Express</title>
-<link rel="stylesheet"  href="/demo-src/style.css">
-<script type="text/javascript" src="/demo-src/json2.js"></script>
-<script type="text/javascript" src="/demo-src/jquery-1.8.2.js"></script>
-<script type="text/javascript" src="/demo-src/underscore.js "></script>
-<script type="text/javascript" src="/demo-src/backbone.js"></script>
-<script type="text/javascript" src="/javascripts/backbone.finder.js"></script>
+<link rel="stylesheet"  href="demo-src/style.css">
+<script type="text/javascript" src="demo-src/json2.js"></script>
+<script type="text/javascript" src="demo-src/jquery-1.8.2.js"></script>
+<script type="text/javascript" src="demo-src/underscore.js "></script>
+<script type="text/javascript" src="demo-src/backbone.js"></script>
+<script type="text/javascript" src="javascripts/backbone.finder.js"></script>
 <script>$(function(){
+  /* 設定 */
   //var finder;
-  var NewEntryView, entrylist, navigator, morepage;
+  var entrylist, navigator, morepage;
   finder = new Finder({
-    pageSize: 3
-  });
-  NewEntryView = EntryView.extend({
-    tagName : "dl",
-    events  : { "click" : "log" },
-    log     : function(){ console.log(this); }
+    pageSize: 10,
+    predicate: function(query,entry){
+      if( query.pattern && query.pattern != 'all' ){
+        if( query.pattern == 'even' && entry.id % 2 != 0 ){ return false; }
+        if( query.pattern == 'odd'  && entry.id % 2 != 1 ){ return false; }
+      }
+      return true;
+    }
   });
   entrylist = new EntrylistView({
     model:finder,
     el:$("#finder-entrylist"),
-    entryView:NewEntryView
+    entryOptions:{ tagName : "dl" }
   });
   navigator = new NavigatorView({
     model:finder,
@@ -32,34 +36,35 @@
     model:finder,
     el:$("#finder-morebutton")
   });
-  //finder.on('change:pageNumber',function(){console.log('change:page')});
-  //finder.load("/demo-src/data.json");
-  finder.load([
-    {id:1,title:"title1",body:"world 1"},
-    {id:2,title:"title2",body:"world 2"},
-    {id:3,title:"title3",body:"world 3"},
-    {id:4,title:"title4",body:"world 4"},
-    {id:5,title:"title5",body:"world 5"},
-    {id:6,title:"title6",body:"world 6"},
-    {id:7,title:"title7",body:"world 7"},
-    {id:8,title:"title8",body:"world 8"},
-    {id:9,title:"title9",body:"world 9"},
-    {id:10,title:"title10",body:"world 10"},
-    {id:11,title:"title11",body:"world 11"},
-    {id:12,title:"title12",body:"world 12"},
-    {id:13,title:"title13",body:"world 13"},
-    {id:14,title:"title14",body:"world 14"},
-    {id:15,title:"title15",body:"world 15"}
-  ]);
+
+  /* 読み込み */
+  //finder.load("demo-src/data.json");
+  var makeData = function( num ){
+    var ret = [];
+    for( var i = 1; i <= num; i++ ){
+      ret.push({ id:i, title:"title"+i, body:"world"+i});
+    }
+    return ret;
+  }
+  finder.load( makeData( 100 ) );
+
+  /* 検索 */
+  $("#queries").on( "click", ">a", function(e){
+    var query = { pattern : $(this).attr('id') };
+    finder.filtering( query );
+  });
 });
 </script>
 </head>
 <body>
-<div id="finder-entrylist">
-  <div class="entry-container"> </div>
-</div>
+<div id="finder-entrylist"></div>
 <div id="finder-navigator"></div>
-<a id="finder-morebutton">more</a>
+<a id="finder-morebutton" href="#more">more</a>
+<p id="queries">
+  <a id="odd" href="#odd">奇数</a>
+  <a id="even" href="#even">偶数</a>
+  <a id="all" href="#all">全て</a>
+</p>
 <script id="entry-view-tmpl" type="text/template">
   <dt> <%= title %> </dt>
   <dd> <%= body %> </dd>

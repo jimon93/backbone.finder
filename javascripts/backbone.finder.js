@@ -8,6 +8,11 @@ Entries = Backbone.Collection.extend({
   initialize: function() {
     return _.bindAll(this, 'setUrl');
   },
+  /*
+    Entryisのurlを設定します
+    このメソッドを使えばメソッドチェーンでfetchなどが可能です
+  */
+
   setUrl: function(url) {
     this.url = url;
     return this;
@@ -19,11 +24,11 @@ Finder = Backbone.Model.extend({
     pageNumber: 1,
     pageSize: 5,
     prevQuery: {},
-    predicate: function(query, model) {
+    predicate: function(query, entry) {
       var key, val;
       for (key in query) {
         val = query[key];
-        if (val !== model.get(key)) {
+        if (val !== entry.get(key)) {
           return false;
         }
       }
@@ -31,6 +36,10 @@ Finder = Backbone.Model.extend({
     }
   },
   initialize: function() {
+    /*
+        イベントの設定
+    */
+
     var filtering, filteringOne, initializePage,
       _this = this;
     filtering = _.bind(this.filtering, this, null, null);
@@ -53,9 +62,20 @@ Finder = Backbone.Model.extend({
     this.get('filteredEntries').on("add", this._pageAdd);
     this.get('filteredEntries').on("reset", initializePage);
     this.get('selectedEntries').on('all', this._onCollectionEvent);
-    return this.on("change:pageSize", initializePage);
+    this.on("change:pageSize", initializePage);
+    return this.on("change:pageNumber", function() {
+      return _this.trigger("change:page");
+    });
   },
+  /*
+    エントリーデータを読み込みます
+    引数
+      1.URLもしくはエントリーデータの配列
+      2.オプション
+  */
+
   load: function(url, options) {
+    var _this = this;
     if (url == null) {
       url = this.get('url');
     }
@@ -63,17 +83,20 @@ Finder = Backbone.Model.extend({
       options = {};
     }
     if (_.isString(url)) {
-      this.get('allEntries').setUrl(url).fetch(options);
+      return this.get('allEntries').setUrl(url).fetch(options).then(function() {
+        return _this.toPage(1);
+      });
     } else if (_.isArray(url || _.isObject(url))) {
       this.get('allEntries').reset(url, options);
+      return this.toPage(1);
     } else {
       throw new Error("Can not load. Invalid argument.");
     }
-    this.set('pageNumber', 0, {
-      silent: true
-    });
-    return this.toPage(1);
   },
+  /*
+    モデル1つに対して述語が真ならばfilterdEntriesに追加します
+  */
+
   filteringOne: function(query, model, predi) {
     var filtered;
     if (query == null) {
@@ -94,6 +117,13 @@ Finder = Backbone.Model.extend({
     }
     return this;
   },
+  /*
+    allEntriesに対して検索します
+    引数
+      1.検索条件
+      2.述語関数
+  */
+
   filtering: function(query, predi) {
     if (query == null) {
       query = this.get('prevQuery');
@@ -106,24 +136,44 @@ Finder = Backbone.Model.extend({
     this.get('filteredEntries').reset(this.get('allEntries').filter(predi));
     return this;
   },
+  /*
+    次のページがあるなら真、そうでなければ偽を返す
+  */
+
   hasNextPage: function() {
     return this.get('pageNumber') < this.getMaxPageNumber();
   },
+  /*
+    前のページがあるなら真、そうでなければ偽を返す
+  */
+
   hasPrevPage: function() {
     return 1 < this.get('pageNumber');
   },
+  /*
+    次のページへ移動する
+  */
+
   nextPage: function() {
     if (!this.hasNextPage()) {
       return this;
     }
     return this.toPage(this.get('pageNumber') + 1);
   },
+  /*
+    前のページへ移動する
+  */
+
   prevPage: function() {
     if (!this.hasPrevPage()) {
       return this;
     }
     return this.toPage(this.get('pageNumber') - 1);
   },
+  /*
+    現在のページに次のページのEntryを追加します
+  */
+
   morePage: function() {
     var page;
     if (!this.hasNextPage()) {
@@ -133,20 +183,35 @@ Finder = Backbone.Model.extend({
     this.get('selectedEntries').add(this.getPageEntries(page));
     return this.set('pageNumber', page);
   },
+  /*
+    指定したページへ移動します
+  */
+
   toPage: function(page) {
     if (_.isString(page)) {
       page = parseInt(pase);
     }
     this.get('selectedEntries').reset(this.getPageEntries(page));
-    this.set('pageNumber', page);
-    return this.trigger('pageChanged');
+    this.set('pageNumber', 0, {
+      silent: true
+    });
+    return this.set('pageNumber', page);
   },
+  /*
+    ページサイズが無限個になっているならば真、そうでなければ偽を返す
+    ページサイズを無限個に設定するには0以下の値を設定してください。
+  */
+
   pageSizeIsInfinity: function(pageSize) {
     if (pageSize == null) {
       pageSize = this.get('pageSize');
     }
     return !(pageSize != null) || pageSize <= 0;
   },
+  /*
+    最大のページ番号を返します
+  */
+
   getMaxPageNumber: function() {
     var allSize;
     if (this.pageSizeIsInfinity()) {
@@ -155,6 +220,10 @@ Finder = Backbone.Model.extend({
     allSize = this.get('filteredEntries').length;
     return Math.ceil(allSize / this.get('pageSize'));
   },
+  /*
+    指定したページ番号のEntryの配列を返します
+  */
+
   getPageEntries: function(page) {
     var pageSize, skipSize;
     pageSize = this.get('pageSize');
@@ -164,6 +233,10 @@ Finder = Backbone.Model.extend({
     skipSize = (page - 1) * pageSize;
     return this.get('filteredEntries').chain().tail(skipSize).head(pageSize).value();
   },
+  /*
+    現在のページにEntryを追加します
+  */
+
   _pageAdd: function(model, collection) {
     var selected;
     selected = this.get('selectedEntries');
@@ -171,6 +244,10 @@ Finder = Backbone.Model.extend({
       return selected.add(model);
     }
   },
+  /*
+    受け取ったイベントを、自分のイベントとして吐き出します
+  */
+
   _onCollectionEvent: function(event, model, collection, options) {
     if (event === "add") {
       this.trigger('selected', model, collection, options);
@@ -184,23 +261,26 @@ Finder = Backbone.Model.extend({
 
 EntryView = Backbone.View.extend({
   options: {
-    templateSelector: "#entry-view-tmpl"
+    template: "#entry-view-tmpl"
   },
   initialize: function() {
-    _.bindAll(this, 'render', 'getTemplate');
+    _.bindAll(this, 'render', '_getTemplate');
     if (this.options.events != null) {
       this.events = this.options.events;
     }
-    return this.template = this.getTemplate();
+    return this.template = this._getTemplate(this.options.template);
   },
   render: function() {
     this.$el.html(this.template(this.model.toJSON()));
     return this;
   },
-  getTemplate: _.memoize(function(tmpl) {
-    if (tmpl == null) {
-      tmpl = $(this.options.templateSelector);
-    }
+  /*
+    テンプレートを取得します
+    メモ化していますので、引数が同じ関数を複数回呼ぶ場合、2回目以降はキャッシュされたものが返ります
+  */
+
+  _getTemplate: _.memoize(function(tmpl) {
+    tmpl = $(tmpl);
     if (tmpl.length === 0) {
       throw new Error("A template does not exist");
     }
@@ -210,37 +290,36 @@ EntryView = Backbone.View.extend({
 
 EntrylistView = Backbone.View.extend({
   options: {
-    entryView: EntryView,
-    containerSelector: ".entry-container",
+    'EntryView': EntryView,
     onAdd: function(view) {
       return view.$el.stop().css('opacity', 1.0).hide().fadeIn();
-    }
+    },
+    entryOptions: {}
   },
-  initialize: function(options) {
-    if (options == null) {
-      options = {};
-    }
-    _.bindAll(this, "_reset", "_add", "_getView");
-    this.$container = this.$(this.options.containerSelector);
-    this.model.on("reset", this._reset);
+  initialize: function() {
+    _.bindAll(this, "render", "_add", "_getView");
+    this.model.on("reset", this.render);
     return this.model.on("add", this._add);
   },
-  _reset: function(collection) {
-    this.$container.html('');
-    return collection.each(this._add);
+  render: function() {
+    this.$el.html('');
+    this.model.get('selectedEntries').each(this._add);
+    return this;
   },
-  _add: function(model, collection) {
+  _add: function(entry) {
     var view;
-    view = this._getView(model);
-    this.$container.append(view.render().el);
+    view = this._getView(entry);
+    this.$el.append(view.render().el);
     if (_.isFunction(this.options.onAdd)) {
       return this.options.onAdd(view);
     }
   },
   _getView: _.memoize(function(model) {
-    return new this.options.entryView({
+    var options;
+    options = _.extend({}, {
       model: model
-    });
+    }, this.options.entryOptions);
+    return new this.options.EntryView(options);
   }, function(model) {
     return model.id;
   })
@@ -248,7 +327,7 @@ EntrylistView = Backbone.View.extend({
 
 NavigatorView = Backbone.View.extend({
   options: {
-    viewNumber: 5,
+    viewCount: 5,
     separater: ' | ',
     nextString: '次のページ',
     prevString: '前のページ',
@@ -261,7 +340,7 @@ NavigatorView = Backbone.View.extend({
   },
   initialize: function() {
     _.bindAll(this, 'render', '_nextPage', '_prevPage', '_toPage');
-    return this.model.on("pageChanged", this.render);
+    return this.model.on("change:page", this.render);
   },
   render: function() {
     var i, maxPage, nowPage, op, _i;
@@ -276,19 +355,19 @@ NavigatorView = Backbone.View.extend({
       if (this.model.hasPrevPage()) {
         this.$el.append("<a class='prevlink' href='#prev'>" + op.prevString + "</a><span>" + op.separater + "</span>");
       }
-      if (1 < nowPage - op.viewNumber) {
+      if (1 < nowPage - op.viewCount) {
         this.$el.append("<span>" + op.exString + "</span>");
       }
       for (i = _i = 1; 1 <= maxPage ? _i <= maxPage : _i >= maxPage; i = 1 <= maxPage ? ++_i : --_i) {
-        if ((nowPage - op.viewNumber <= i && i <= nowPage + op.viewNumber)) {
+        if ((nowPage - op.viewCount <= i && i <= nowPage + op.viewCount)) {
           if (i === nowPage) {
             this.$el.append("<span>" + i + "</span>");
           } else {
-            this.$el.append("<a class='page-jump' href='#to-" + i + "' data-to-page='" + i + "'>" + i + "</a>");
+            this.$el.append("<a class='page-jump' href='#" + i + "page' data-to-page='" + i + "'>" + i + "</a>");
           }
         }
       }
-      if (nowPage + op.viewNumber < maxPage) {
+      if (nowPage + op.viewCount < maxPage) {
         this.$el.append("<span>" + op.exString + "</span>");
       }
       if (this.model.hasNextPage()) {
@@ -317,18 +396,26 @@ MorePageView = Backbone.View.extend({
   },
   initialize: function() {
     _.bindAll(this, 'render', '_morePage');
-    this.model.on("pageChanged", this.render);
+    this.model.on("change:page", this.render);
     return this.render();
   },
   render: function() {
     if (this.model.get('pageNumber') < this.model.getMaxPageNumber()) {
-      return this.$el.show();
+      this.$el.show();
     } else {
-      return this.$el.hide();
+      this.$el.hide();
     }
+    return this;
   },
   _morePage: function(event) {
     this.model.morePage();
     return false;
   }
 });
+
+/*
+using = ->
+  classes = ['Entry','Entries','Finder','EntryView','EntrylistView','NavigatorView','MorePageView']
+  this[name] = root[name] for name in classes
+*/
+
