@@ -38,15 +38,15 @@
   });
 
   /* 読み込み */
-  //finder.load("demo-src/data.json");
-  var makeData = function( num ){
-    var ret = [];
-    for( var i = 1; i <= num; i++ ){
-      ret.push({ id:i, title:"title"+i, body:"world"+i});
-    }
-    return ret;
-  }
-  finder.load( makeData( 100 ) );
+  finder.load("demo-src/data.json");
+  //var makeData = function( num ){
+  //  var ret = [];
+  //  for( var i = 1; i <= num; i++ ){
+  //    ret.push({ id:i, title:"title"+i, body:"world"+i});
+  //  }
+  //  return ret;
+  //}
+  //finder.load( makeData( 100 ) );
 
   /* 検索 */
   $("#queries").on( "click", ">a", function(e){
