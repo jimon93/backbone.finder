@@ -106,18 +106,18 @@ finderがページを切り替えたら登録された関数が実行され、Vi
 # 各要素の説明
 
 * Model
-    * [Entry](blob/master/docs/entry.md)
+    * [Entry](docs/entry.md)
       _見なくても大丈夫_
-    * [Finder](blob/master/docs/finder.md)
+    * [Finder](docs/finder.md)
 * Collection
-    * [Entries](blob/master/docs/entries.md)
+    * [Entries](docs/entries.md)
       _見なくても大丈夫_
 * View
-    * [EntryView](blob/master/docs/entry-view.md)
+    * [EntryView](docs/entry-view.md)
       _見なくても大丈夫_
-    * [EntrylistView](blob/master/docs/entrylist-view.md)
-    * [NavigatorView](blob/master/docs/navigator-view.md)
-    * [MorePageView](blob/master/docs/morepage-view.md)
+    * [EntrylistView](docs/entrylist-view.md)
+    * [NavigatorView](docs/navigator-view.md)
+    * [MorePageView](docs/morepage-view.md)
 
 # Q&A
 
