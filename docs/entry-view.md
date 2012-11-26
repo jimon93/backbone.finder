@@ -65,6 +65,54 @@ EntryViewインスタンス作成時に設定することが可能です。
 
 関数内の_this_は_view_にbindされています。
 
+テンプレートとは
+--------------------------------------------------------------------------------
+本ライブラリでは新しいエントリーを作成する際、テンプレートを使っています。
+テンプレートはUnderscoreの`template`メソッドを使っています。
+
+* テンプレート用要素を用意します。
+
+    表示されないようにCSSで'display:none'を指定してください。
+    もしくは、`type="text/template"`の`script`ならばCSSの調整なしに
+    非表示でDOM要素として埋め込めます。
+
+        <script id="template" type="text/template">
+        </script>
+
+* テンプレートごとに展開される内容を書き込む。
+
+        <script id="template" type="text/template">
+            <dt></dt>
+            <dd></dd>
+        </script>
+
+* javascript文を埋め込みたい場合は、特別な書き方をする。
+
+    `<% %>`はjavascriptを埋め込むことができます。
+    if文などは次のように書きます
+
+        <% if( id % 2 == 0 ){ %> 真 <% }else{ %> 偽 <% } %>
+
+* データの値を参照して埋め込みたい場合は、特別な書き方をする。
+
+    `<%= %>` `<%- %>` はデータを埋め込みます。
+    `<%= %>` はデータを生のまま出力します。
+    `<%- %>` はデータをHTMLエスケープして出力します。
+
+        <script id="template" type="text/template">
+            <dt><%= title %></dt>
+            <dd><%= body %></dd>
+        </script>
+
+* 出来たテンプレートをEntryView作成時に渡してください。
+
+    このとき Selector でも jQueryオブジェクト どちらでも構いません。
+
+        new EntryView({
+            tmplate : "#tmplate"
+        });
+
+詳しくは Underscore のリファレンスを参照ください。
 Note
 --------------------------------------------------------------------------------
 EntryView は backbone.View を継承して作られています。

@@ -125,3 +125,10 @@ finderがページを切り替えたら登録された関数が実行され、Vi
 
     finder.get('filterdEntries').length
 
+## テンプレートとは
+
+本ライブラリでは新しいエントリーを作成する際、テンプレートを使っています。
+テンプレートはUnderscoreの`template`メソッドを使っています。
+
+
+詳しくは Underscore のリファレンスを参照ください。
